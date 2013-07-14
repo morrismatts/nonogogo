@@ -1,0 +1,35 @@
+#! /bin/sh
+
+if [ -z "$1" ]
+    then
+        echo "No argument supplied, try 'nonogogo on' or 'nonogogo off'"
+	exit 1
+fi
+
+hostsfile='/etc/hosts'
+startline=`awk '/# nonogogo blocked sites go here/ {print NR}' /etc/hosts`
+endline=`awk '/# nonogogo blocked sites end/ {print NR}' $hostsfile`
+
+# ADJUST START AND END LINES
+if [ -n "$startline" ] 
+    then
+        (( startline += 1 ))
+fi
+
+if [ -n "$endline" ]
+    then
+         (( endline -= 1 ))
+fi
+
+# COMMENT OR UNCOMMENT APPROPRIATE LINES IN HOSTS FILE
+if [ "$1" == "on" ]
+    then
+        sudo -- sh -c "sed -E -i -n '$startline,$endline s/^#//' $hostsfile"
+        echo "nonogogo is activated -- 'nonogogo off' will deactivate"
+    else
+        sudo -- sh -c "sed -E -i -n '$startline,$endline{ /^#/! s/^/#&/; }' $hostsfile"
+        echo "nonogogo deactivated -- please come again soon"
+fi
+
+# CLEAR THE DNS CACHE
+sudo killall -HUP mDNSResponder
